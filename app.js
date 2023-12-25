@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer');
  
 
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3000 ;
 
 app.use(cors());
 
@@ -43,6 +43,6 @@ app.get('/download-pdf', async (req, res) => {
 
  
   
-app.listen(port, () => {
+app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
