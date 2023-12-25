@@ -1,12 +1,40 @@
 const express = require('express');
 const cors = require('cors');
 const puppeteer = require('puppeteer');
- 
 
 const app = express();
-const PORT = process.env.PORT || 3000 ;
+const PORT = process.env.PORT || 3030;
+
 
 app.use(cors());
+
+async function generatePdf(url) {
+  try {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    // Open URL in the current page
+    await page.goto(url, { waitUntil: 'networkidle0' });
+
+    // Reflect CSS used for screens instead of print
+    await page.emulateMediaType('screen');
+
+    // Download the PDF
+    const pdfBuffer = await page.pdf({
+      margin: { top: '100px', right: '50px', bottom: '100px', left: '50px' },
+      printBackground: true,
+      format: 'A4',
+    });
+
+    // Close the browser instance
+    await browser.close();
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error(error);
+    throw new Error('Failed to generate PDF');
+  }
+}
 
 app.get('/download-pdf', async (req, res) => {
   const { url } = req.query;
@@ -16,33 +44,20 @@ app.get('/download-pdf', async (req, res) => {
   }
 
   try {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-
-    // Navigate to the provided URL
-    await page.goto(url, { waitUntil: 'networkidle2' });
-
-    // Generate PDF
-    const pdfBuffer = await page.pdf();
-
-    // Close browser
-    await browser.close();
+    const pdfBuffer = await generatePdf(url);
 
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=${url.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=result.pdf`);
 
     // Send PDF as response
     res.send(pdfBuffer);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
 
-
- 
-  
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
